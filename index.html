@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>野球魂A 金書驗血模擬器</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+        }
+
+        #draw-btn {
+            background: linear-gradient(to bottom, #ffae00, #ff7b00);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            padding: 12px 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s, filter 0.2s;
+            margin-bottom: 30px;
+        }
+
+        #draw-btn:hover {
+            filter: brightness(1.1);
+        }
+
+        #draw-btn:active {
+            transform: scale(0.95);
+        }
+
+        #draw-btn:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            filter: none;
+        }
+
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+            max-width: 800px;
+        }
+
+        .card {
+            width: 100px;
+            height: 140px;
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: rgba(255, 255, 255, 0.5);
+            border: 2px solid #2980b9;
+        }
+
+        /* 卡背設定（翻開後的樣式） */
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        .rank-S {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.8);
+            border: 3px solid #ffe600;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+        }
+
+        .rank-A {
+            background: linear-gradient(135deg, #ff4e50, #c0392b);
+            color: #fff;
+            border: 2px solid #e74c3c;
+        }
+
+        .rank-B {
+            background: linear-gradient(135deg, #7f8c8d, #bdc3c7);
+            color: #333;
+            border: 2px solid #95a5a6;
+        }
+
+        .result-summary {
+            background-color: #333;
+            padding: 20px 40px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #555;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .result-summary h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+
+        .result-item {
+            font-size: 18px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .s-text { color: #ffd700; }
+        .a-text { color: #ff4e50; }
+        .b-text { color: #bdc3c7; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 手機版響應式設計 */
+        @media (max-width: 600px) {
+            .card-container {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 5px;
+            }
+            .card {
+                width: 60px;
+                height: 84px;
+            }
+            .card-front, .card-back {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>⚾ 野球魂A 金書驗血模擬器 ⚾</h1>
+    <button id="draw-btn">抽 10 連！</button>
+    
+    <div id="card-container" class="card-container"></div>
+    <div id="result-summary" class="result-summary" style="display: none;"></div>
+
+    <script>
+        // 設定機率區間 (S: 2.5%, A: 8.5%, B: 89%)
+        const PROB_S = 0.025;
+        const PROB_A = 0.085;
+        const PROB_B = 0.890;
+
+        function drawCardRank() {
+            const rand = Math.random();
+            if (rand < PROB_S) return 'S';
+            if (rand < PROB_S + PROB_A) return 'A';
+            return 'B';
+        }
+
+        document.getElementById('draw-btn').addEventListener('click', () => {
+            const container = document.getElementById('card-container');
+            const summary = document.getElementById('result-summary');
+            const btn = document.getElementById('draw-btn');
+
+            // 初始化與鎖定按鈕
+            container.innerHTML = '';
+            summary.style.display = 'none';
+            btn.disabled = true;
+
+            let results = { S: 0, A: 0, B: 0 };
+            let cards = [];
+
+            // 1. 產生 10 張卡片的結果與建立 HTML 元素
+            for (let i = 0; i < 10; i++) {
+                const rank = drawCardRank();
+                results[rank]++;
+                cards.push(rank);
+
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front">?</div>
+                        <div class="card-back rank-${rank}">${rank}</div>
+                    </div>
+                `;
+                container.appendChild(cardEl);
+            }
+
+            // 2. 設定動畫，一張一張翻開 (間隔 300 毫秒)
+            cards.forEach((rank, index) => {
+                setTimeout(() => {
+                    // 觸發翻牌 CSS 動畫
+                    container.children[index].classList.add('flipped');
+
+                    // 如果是最後一張牌，等待翻牌動畫結束後顯示結果
+                    if (index === 9) {
+                        setTimeout(() => {
+                            showSummary(results);
+                            btn.disabled = false;
+                        }, 800); // 等待最後一張翻牌動畫跑完
+                    }
+                }, index * 300); 
+            });
+        });
+
+        function showSummary(results) {
+            const summary = document.getElementById('result-summary');
+            
+            // 判斷是否為「歐洲人」或「非洲人」的趣味標語
+            let titleText = "抽卡結果統計";
+            if (results.S >= 2) titleText = "🎉 歐洲血統覺醒！神抽！ 🎉";
+            else if (results.S === 1) titleText = "👍 恭喜出 S 卡！安全下莊 👍";
+            else titleText = "🌚 非洲大草原歡迎你... 🌚";
+
+            summary.innerHTML = `
+                <h3>${titleText}</h3>
+                <div class="result-item s-text">S 級卡片：${results.S} 張 (機率 2.5%)</div>
+                <div class="result-item a-text">A 級卡片：${results.A} 張 (機率 8.5%)</div>
+                <div class="result-item b-text">B 級卡片：${results.B} 張 (機率 89%)</div>
+            `;
+            summary.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

@@ -24,11 +24,10 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
             margin-bottom: 20px;
             z-index: 10;
-            cursor: pointer; /* 讓手機用戶知道可以點擊 */
-            user-select: none; /* 防止連點時反白文字 */
+            cursor: pointer; 
+            user-select: none; 
         }
 
-        /* 秘技浮水印設定 */
         #cheat-indicator {
             display: none;
             position: absolute;
@@ -134,7 +133,7 @@
             transform: rotateY(180deg);
         }
 
-        /* ======= S卡設定與閃電特效 ======= */
+        /* ======= S卡本體發光設定 ======= */
         .rank-S {
             background: linear-gradient(135deg, #ffd700, #ff8c00);
             color: #fff;
@@ -155,6 +154,7 @@
             100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); filter: brightness(1); }
         }
 
+        /* ======= 閃電特效容器 ======= */
         .lightning-effect {
             position: absolute;
             top: 0;
@@ -163,13 +163,14 @@
             height: 100%;
             pointer-events: none;
             display: none;
-            z-index: 2;
+            z-index: 20; /* 確保蓋在文字上方 */
         }
 
         .card.flipped .lightning-effect {
             display: block;
         }
 
+        /* 1. 四周匯聚的小閃電 */
         .lightning-bolt {
             position: absolute;
             background: #fff;
@@ -192,14 +193,43 @@
             100% { opacity: 0; transform: translate(20px, -50%) scaleX(0); }
         }
 
-        /* ======= A卡設定 ======= */
+        /* 2. 從天而降劈在卡面上的主閃電 */
+        .strike-bolt {
+            position: absolute;
+            top: -10%;
+            left: 0;
+            width: 100%;
+            height: 120%;
+            background: #ffffff;
+            /* 透過 clip-path 描繪出閃電的幾何形狀 */
+            clip-path: polygon(55% 0%, 20% 50%, 45% 50%, 15% 100%, 80% 40%, 55% 40%);
+            transform-origin: top center;
+            opacity: 0;
+            filter: drop-shadow(0 0 5px #ffd700);
+        }
+
+        .card.flipped .strike-bolt {
+            /* 延遲 0.3 秒，剛好配合卡片翻正的瞬間劈下 */
+            animation: mainStrike 0.6s 0.3s forwards;
+        }
+
+        @keyframes mainStrike {
+            0% { transform: scaleY(0); opacity: 1; background: #fff; }
+            10% { transform: scaleY(1); opacity: 1; background: #ffd700; filter: drop-shadow(0 0 15px #fff); }
+            20% { opacity: 0; }
+            30% { opacity: 1; background: #fff; }
+            40% { opacity: 0; }
+            50% { opacity: 0.6; background: #ffd700; }
+            100% { opacity: 0; }
+        }
+
+        /* ======= A卡與B卡設定 ======= */
         .rank-A {
             background: linear-gradient(135deg, #ff4e50, #c0392b);
             color: #fff;
             border: 2px solid #e74c3c;
         }
 
-        /* ======= B卡設定 ======= */
         .rank-B {
             background: linear-gradient(135deg, #4aa3df, #2575fc);
             color: #ffffff;
@@ -274,7 +304,6 @@
 
         let cheatActivated = false;
 
-        // --- 1. 鍵盤秘技邏輯 (上上下下左右左右BA) ---
         const secretCode = [
             'ArrowUp', 'ArrowUp', 
             'ArrowDown', 'ArrowDown', 
@@ -293,7 +322,6 @@
             }
         });
 
-        // --- 2. 手機標題連點 10 下邏輯 ---
         let clickCount = 0;
         const titleEl = document.querySelector('h1');
         
@@ -305,21 +333,17 @@
             }
         });
 
-        // --- 共用的啟用函數 ---
         function activateCheat() {
             if (cheatActivated) return;
             cheatActivated = true;
-            // 變更機率 (S提升至50%)
             PROB_S = 0.50;
             PROB_A = 0.085;
             PROB_B = 1 - PROB_S - PROB_A;
             
-            // 顯示浮水印並跳出提示
             document.getElementById('cheat-indicator').style.display = 'block';
-            alert("✨ 樸薩保佑中 ✨");
+            alert(" 樸薩保佑中... ");
         }
 
-        // --- 抽卡與動畫邏輯 ---
         function drawCardRank() {
             const rand = Math.random();
             if (rand < PROB_S) return 'S';
@@ -347,12 +371,14 @@
                 const cardEl = document.createElement('div');
                 cardEl.className = 'card';
                 
+                // 加入 strike-bolt (主閃電)
                 let lightningHTML = rank === 'S' ? `
                     <div class="lightning-effect">
                         <div class="lightning-bolt bolt-1"></div>
                         <div class="lightning-bolt bolt-2"></div>
                         <div class="lightning-bolt bolt-3"></div>
                         <div class="lightning-bolt bolt-4"></div>
+                        <div class="strike-bolt"></div> 
                     </div>` : '';
 
                 cardEl.innerHTML = `
@@ -380,10 +406,9 @@
             });
         });
 
-        // --- 結算畫面顯示邏輯 ---
         function showSummary(results) {
             const summary = document.getElementById('result-summary');
-            let titleText = results.S >= 2 ? "⚡ 歐洲血統覺醒！神抽！ ⚡" : (results.S === 1 ? "🎉 🎉 恭喜出 S 卡！成功驗血！  🎉" : "🌚 非洲大草原歡迎你... 🌚");
+            let titleText = results.S >= 2 ? "⚡ 歐皇降臨！歐洲人血統覺醒！ ⚡" : (results.S === 1 ? "🎉 成功出 S 卡！歐爆！ 🎉" : "🌚 歡迎來到非洲大草原.. 🌚");
             
             const showProbS = (PROB_S * 100).toFixed(1);
             const showProbA = (PROB_A * 100).toFixed(1);

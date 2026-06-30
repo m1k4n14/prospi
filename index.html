@@ -15,12 +15,39 @@
             padding: 40px 20px;
             margin: 0;
             overflow-x: hidden;
+            position: relative; 
+            min-height: 100vh;
         }
 
         h1 {
             color: #ffd700;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
             margin-bottom: 20px;
+            z-index: 10;
+            cursor: pointer; /* 讓手機用戶知道可以點擊 */
+            user-select: none; /* 防止連點時反白文字 */
+        }
+
+        /* 秘技浮水印設定 */
+        #cheat-indicator {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            font-weight: bold;
+            color: rgba(255, 215, 0, 0.15); 
+            pointer-events: none; 
+            z-index: 1;
+            white-space: nowrap;
+            letter-spacing: 10px;
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { text-shadow: 0 0 10px rgba(255, 215, 0, 0.1); }
+            100% { text-shadow: 0 0 30px rgba(255, 215, 0, 0.3); }
         }
 
         #draw-btn {
@@ -116,7 +143,6 @@
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
         }
 
-        /* S卡翻開時的強烈黃金放電動畫 */
         .card.flipped .rank-S {
             animation: lightningGlow 0.8s ease-out forwards;
         }
@@ -129,7 +155,6 @@
             100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); filter: brightness(1); }
         }
 
-        /* 閃電線條容器 */
         .lightning-effect {
             position: absolute;
             top: 0;
@@ -141,12 +166,10 @@
             z-index: 2;
         }
 
-        /* 當卡片被翻開且是S卡時，顯示閃電線條 */
         .card.flipped .lightning-effect {
             display: block;
         }
 
-        /* 模擬四周集中到中央的閃電線條 */
         .lightning-bolt {
             position: absolute;
             background: #fff;
@@ -155,7 +178,7 @@
         }
 
         .bolt-1 { top: -20px; left: 50%; width: 3px; height: 40px; transform: translateX(-50%); animation: boltInY 0.4s ease-in-out forwards; }
-        .bolt-2 { bottom: -20px; left: 50%; width: 3px; height: 40px; transform: translateX(-50%); animation: boltInY 0.4s ease-in-out open forwards; }
+        .bolt-2 { bottom: -20px; left: 50%; width: 3px; height: 40px; transform: translateX(-50%); animation: boltInY 0.4s ease-in-out forwards; }
         .bolt-3 { top: 50%; left: -20px; width: 40px; height: 3px; transform: translateY(-50%); animation: boltInX 0.4s ease-in-out forwards; }
         .bolt-4 { top: 50%; right: -20px; width: 40px; height: 3px; transform: translateY(-50%); animation: boltInX 0.4s ease-in-out forwards; }
 
@@ -176,7 +199,7 @@
             border: 2px solid #e74c3c;
         }
 
-        /* ======= B卡設定 (修改為亮藍色) ======= */
+        /* ======= B卡設定 ======= */
         .rank-B {
             background: linear-gradient(135deg, #4aa3df, #2575fc);
             color: #ffffff;
@@ -209,7 +232,7 @@
 
         .s-text { color: #ffd700; }
         .a-text { color: #ff4e50; }
-        .b-text { color: #54b4ff; } /* 結算文字也同步改藍色 */
+        .b-text { color: #54b4ff; }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -230,10 +253,13 @@
             }
             .bolt-1, .bolt-2 { height: 20px; }
             .bolt-3, .bolt-4 { width: 20px; }
+            #cheat-indicator { font-size: 40px; } 
         }
     </style>
 </head>
 <body>
+    
+    <div id="cheat-indicator">樸薩保佑中</div>
 
     <h1>⚾ 野球魂A 金書驗血模擬器 ⚾</h1>
     <button id="draw-btn">抽 10 連！</button>
@@ -242,10 +268,58 @@
     <div id="result-summary" class="result-summary" style="display: none;"></div>
 
     <script>
-        const PROB_S = 0.025;
-        const PROB_A = 0.085;
-        const PROB_B = 0.890;
+        let PROB_S = 0.025;
+        let PROB_A = 0.085;
+        let PROB_B = 0.890;
 
+        let cheatActivated = false;
+
+        // --- 1. 鍵盤秘技邏輯 (上上下下左右左右BA) ---
+        const secretCode = [
+            'ArrowUp', 'ArrowUp', 
+            'ArrowDown', 'ArrowDown', 
+            'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 
+            'b', 'a'
+        ];
+        let inputSequence = [];
+
+        window.addEventListener('keydown', (e) => {
+            if (cheatActivated) return;
+            inputSequence.push(e.key.toLowerCase());
+            if (inputSequence.length > secretCode.length) inputSequence.shift();
+            
+            if (inputSequence.join('').toLowerCase() === secretCode.map(k => k.toLowerCase()).join('')) {
+                activateCheat();
+            }
+        });
+
+        // --- 2. 手機標題連點 10 下邏輯 ---
+        let clickCount = 0;
+        const titleEl = document.querySelector('h1');
+        
+        titleEl.addEventListener('click', () => {
+            if (cheatActivated) return;
+            clickCount++;
+            if (clickCount >= 10) {
+                activateCheat();
+            }
+        });
+
+        // --- 共用的啟用函數 ---
+        function activateCheat() {
+            if (cheatActivated) return;
+            cheatActivated = true;
+            // 變更機率 (S提升至50%)
+            PROB_S = 0.50;
+            PROB_A = 0.085;
+            PROB_B = 1 - PROB_S - PROB_A;
+            
+            // 顯示浮水印並跳出提示
+            document.getElementById('cheat-indicator').style.display = 'block';
+            alert("✨ 樸薩保佑中 ✨");
+        }
+
+        // --- 抽卡與動畫邏輯 ---
         function drawCardRank() {
             const rand = Math.random();
             if (rand < PROB_S) return 'S';
@@ -273,18 +347,13 @@
                 const cardEl = document.createElement('div');
                 cardEl.className = 'card';
                 
-                // 如果是 S 卡，額外塞入 4 條往內集中的閃電特效線條
-                let lightningHTML = '';
-                if (rank === 'S') {
-                    lightningHTML = `
-                        <div class="lightning-effect">
-                            <div class="lightning-bolt bolt-1"></div>
-                            <div class="lightning-bolt bolt-2"></div>
-                            <div class="lightning-bolt bolt-3"></div>
-                            <div class="lightning-bolt bolt-4"></div>
-                        </div>
-                    `;
-                }
+                let lightningHTML = rank === 'S' ? `
+                    <div class="lightning-effect">
+                        <div class="lightning-bolt bolt-1"></div>
+                        <div class="lightning-bolt bolt-2"></div>
+                        <div class="lightning-bolt bolt-3"></div>
+                        <div class="lightning-bolt bolt-4"></div>
+                    </div>` : '';
 
                 cardEl.innerHTML = `
                     <div class="card-inner">
@@ -301,30 +370,30 @@
             cards.forEach((rank, index) => {
                 setTimeout(() => {
                     container.children[index].classList.add('flipped');
-
                     if (index === 9) {
                         setTimeout(() => {
                             showSummary(results);
                             btn.disabled = false;
-                        }, 1000); // 稍微拉長一點點等待時間，讓S卡特效完美跑完
+                        }, 1000); 
                     }
                 }, index * 300); 
             });
         });
 
+        // --- 結算畫面顯示邏輯 ---
         function showSummary(results) {
             const summary = document.getElementById('result-summary');
+            let titleText = results.S >= 2 ? "⚡ 歐洲血統覺醒！神抽！ ⚡" : (results.S === 1 ? "🎉 🎉 恭喜出 S 卡！成功驗血！  🎉" : "🌚 非洲大草原歡迎你... 🌚");
             
-            let titleText = "抽卡結果統計";
-            if (results.S >= 2) titleText = "⚡ 歐洲血統覺醒！神抽！ ⚡";
-            else if (results.S === 1) titleText = "🎉 恭喜出 S 卡！成功驗血！ 🎉";
-            else titleText = "🌚 非洲大草原歡迎你... 🌚";
+            const showProbS = (PROB_S * 100).toFixed(1);
+            const showProbA = (PROB_A * 100).toFixed(1);
+            const showProbB = (PROB_B * 100).toFixed(1);
 
             summary.innerHTML = `
                 <h3>${titleText}</h3>
-                <div class="result-item s-text">S 級卡片：${results.S} 張 (機率 2.5%)</div>
-                <div class="result-item a-text">A 級卡片：${results.A} 張 (機率 8.5%)</div>
-                <div class="result-item b-text">B 級卡片：${results.B} 張 (機率 89%)</div>
+                <div class="result-item s-text">S 級卡片：${results.S} 張 (機率 ${showProbS}%)</div>
+                <div class="result-item a-text">A 級卡片：${results.A} 張 (機率 ${showProbA}%)</div>
+                <div class="result-item b-text">B 級卡片：${results.B} 張 (機率 ${showProbB}%)</div>
             `;
             summary.style.display = 'block';
         }
